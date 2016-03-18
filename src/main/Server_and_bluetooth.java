@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package main;
+package gcsh.server;
 
 import java.io.*;
 import java.net.*;
@@ -89,371 +89,217 @@ class EchoHandler extends Thread implements Runnable, DiscoveryListener{
     public ArrayList<RemoteDevice> devices;
     LocalDevice localDevice;
     DiscoveryAgent agent;
-    StreamConnection con  = null;
-    OutputStream os=null;
 	public void run(){
 		
-            try{
-                
-                localDevice= LocalDevice.getLocalDevice();
-                agent = localDevice.getDiscoveryAgent();
-                agent.startInquiry(DiscoveryAgent.GIAC, listener);
-                
-                try {
-                    synchronized(lock){
-                        lock.wait();
-                    }
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                
-                
-                System.out.println("Device Inquiry Completed. ");
-                
-                
-                UUID[] uuidSet = new UUID[1];
-                uuidSet[0]=new UUID(0x1105); //OBEX Object Push service MT alla bluetooth enheter lägger sina serienummer på denna plats(samma plats!!!) så att när den letarv efter bluetooth enheter i närheten kommer dessa att visas upp som representerar enheterna i närheten.
-                System.out.print("this number:"+uuidSet[0]+" is uuidset[0]");
-                int[] attrIDs =  new int[] {
-                    0x0100 // Service name
-                        
-                };
-                
-                for (RemoteDevice device : listener.devices) {
-                    agent.searchServices( attrIDs,uuidSet,device,listener);
-                    //System.out.print(attrIDs.toString()+"***"+uuidSet+"*****"+device.toString()+"******"+listener.toString());
+		try{
                     
-                    try {
-                        synchronized(lock){
-                            lock.wait();
+                    try{
+                        
+                        localDevice= LocalDevice.getLocalDevice();
+                        agent = localDevice.getDiscoveryAgent();
+                        agent.startInquiry(DiscoveryAgent.GIAC, listener);
+                        
+                        try {
+                            synchronized(lock){
+                                lock.wait();
+                            }
                         }
-                    }
-                    catch (InterruptedException e) {
+                        catch (InterruptedException e) {
+                            e.printStackTrace();
+                            return;
+                        }
+                        
+                        
+                        System.out.println("Device Inquiry Completed. ");
+                        
+                        
+                        UUID[] uuidSet = new UUID[1];
+                        uuidSet[0]=new UUID(0x1105); //OBEX Object Push service MT alla bluetooth enheter lägger sina serienummer på denna plats(samma plats!!!) så att när den letarv efter bluetooth enheter i närheten kommer dessa att visas upp som representerar enheterna i närheten.
+                        System.out.print("this number:"+uuidSet[0]+" is uuidset[0]");
+                        int[] attrIDs =  new int[] {
+                            0x0100 // Service name
+                                
+                        };
+                        
+                        for (RemoteDevice device : listener.devices) {
+                            agent.searchServices( attrIDs,uuidSet,device,listener);
+                            //System.out.print(attrIDs.toString()+"***"+uuidSet+"*****"+device.toString()+"******"+listener.toString());
+                            
+                            try {
+                                synchronized(lock){
+                                    lock.wait();
+                                }
+                            }
+                            catch (InterruptedException e) {
+                                e.printStackTrace();
+                                return;
+                            }
+                            
+                            
+                            System.out.println("Service search finished.");
+                        }
+                        
+                    } catch (Exception e) {
                         e.printStackTrace();
-                        return;
                     }
-                    
-                    
-                    System.out.println("Service search finished.");
-                }
-                
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        client.getInputStream()));
-                //PrintWriter writer = new PrintWriter(client.getOutputStream(), true);
-                while (true) {
-                    String line = reader.readLine(); // enter
-                    
-                    
-                    String REGEX_Android = "A"; // A: !!
-                    String REGEX_Kinect = "K";
-                    
-                    Pattern pA = Pattern.compile(REGEX_Android);
-                    Matcher mA = pA.matcher(line);
-                    
-                    Pattern pK = Pattern.compile(REGEX_Kinect);
-                    Matcher mK = pK.matcher(line);
-                    
-                    String ToContextServer = "no gesture yet"; // hex/ binary value
-                    
-                    double[] android_accelerometer = new double[10]; // 100 > 10!!
-                    int[] command = new int[5];
-                    
-                    if (mA.find()) {
-                        System.out.println("Android discovered");// A:x y z# THEY NEED "\n" AT THE END, readline, doc
-                        String[] token0 = line.split("A|:| |#");
-                        System.out
-                                .println("android data start......................");
-                        for (int q = 0; q < token0.length; q++) {
-                            System.out.println(token0[q]);
-                        }
-                        
-                        
-                        System.out.println("end of android data................................");
-                        //sendMessageToDevice("btspp://00066608BB6A:1","2");
-                        /*
-                        android_accelerometer[3] = Double.parseDouble(token0[3]);
-                        if (android_accelerometer[3] >= 6.1 && android_accelerometer[3] <= 7.1) {
-                        System.out.println(android_accelerometer[3]);
-                        System.out.println("mobile up");
-                        //ToContextServer = "h";
-                        ToContextServer = "1";
-                        //sendMessageToDevice("btspp://00066608BB6A:1",ToContextServer);
-                        }
-                        if (android_accelerometer[3] <= -6.1 && android_accelerometer[3] >= -7.1) {
-                        System.out.println(android_accelerometer[3]);
-                        System.out.println("mobile down");
-                        ToContextServer = "2";
-                        //sendMessageToDevice("btspp://00066608BB6A:1",ToContextServer);
-                        }
-                        */
-                        //2nd format
-                        /*
-                        command[1]=Integer.parseInt(token0[1]);
-                        if(command[1]==1){
-                        ToContextServer = "1";
-                        }
-                        if(command[1]==2){
-                        ToContextServer = "2";
-                        }
-                        */
-                        //3rd format ; 2016.03.17
-                        
-                        //..................... ROOM 1 .......................................
-                        if(token0[2].equals("R1")){
-                            if(token0[3].equals("FL")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Floor lamp in Room 1");
-                                    ToContextServer="1"; // ? other devices? .......................................
-                                }//1 : on
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Floor lamp in Room 1");
-                                    ToContextServer="2";
-                                }//2 : off
-                                
-                            }//FL
-                            if(token0[3].equals("CL")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Ceiling lamp in Room 1");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Ceiling lamp in Room 1");
-                                    ToContextServer="2";
-                                }//2 : off
-                                
-                            }//CL
-                            if(token0[3].equals("FN")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Fan in Room 1");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Fan in Room 1");
-                                    ToContextServer="2";
-                                }//2 : off
-                                
-                            }//FN
-                            if(token0[3].equals("CR")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Scroll Up Curtain in Room 1");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Scroll Down Curtain in Room 1");
-                                    ToContextServer="2";
-                                }//2 : off
-                                
-                            }//CR
+                    StreamConnection con = (StreamConnection) Connector.open("btspp://00066608BB6A:1");
+                    System.out.println("**** In RFcommclient run method **** Service URL = " + "btspp://00066608BB6A:1" + ".");
+                    OutputStream os = con.openOutputStream();
+                    DataOutputStream dataOutputStream = new DataOutputStream(os);
+                    try {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(
+                                client.getInputStream()));
+                        //PrintWriter writer = new PrintWriter(client.getOutputStream(), true);
+                        while (true) {
+                            String line = reader.readLine(); // enter
                             
                             
-                            // set variable ToContextServer/ BT
-                        }//R1
-                        
-                        //..................... ROOM 2 .......................................
-                        if(token0[2].equals("R2")){
-                            if(token0[3].equals("FL")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Floor lamp in Room 2");
-                                    ToContextServer="1";
-                                }//1 : on
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Floor lamp in Room 2");
-                                    ToContextServer="2";
-                                }//2 : off
+                            String REGEX_Android = "A"; // A: !!
+                            String REGEX_Kinect = "K";
+                            
+                            Pattern pA = Pattern.compile(REGEX_Android);
+                            Matcher mA = pA.matcher(line);
+                            
+                            Pattern pK = Pattern.compile(REGEX_Kinect);
+                            Matcher mK = pK.matcher(line);
+                            
+                            String ToContextServer = "no gesture yet"; // hex/ binary value
+                            
+                            double[] android_accelerometer = new double[10]; // 100 > 10!!
+                            int[] command = new int[5];
+                            
+                            if (mA.find()) {
+                                System.out.println("Android discovered");// A:x y z# THEY NEED "\n" AT THE END, readline, doc
+                                String[] token0 = line.split("A|:| |#");
+                                System.out
+                                        .println("android data start......................");
+                                for (int q = 0; q < token0.length; q++) {
+                                    System.out.println(token0[q]);
+                                }
                                 
-                            }//FL
-                            if(token0[3].equals("CL")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Ceiling lamp in Room 2");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Ceiling lamp in Room 2");
-                                    ToContextServer="2";
-                                }//2 : off
                                 
-                            }//CL
-                            if(token0[3].equals("FN")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Fan in Room 2");
-                                    ToContextServer="2";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Fan in Room 2");
-                                    ToContextServer="2";
-                                }//2 : off
+                                System.out.println("end of android data................................");
+                                //sendMessageToDevice("btspp://00066608BB6A:1","2");
+                                /*
+                                android_accelerometer[3] = Double.parseDouble(token0[3]);
+                                if (android_accelerometer[3] >= 6.1 && android_accelerometer[3] <= 7.1) {
+                                    System.out.println(android_accelerometer[3]);
+                                    System.out.println("mobile up");
+                                    //ToContextServer = "h";
+                                    ToContextServer = "1";
+                                    //sendMessageToDevice("btspp://00066608BB6A:1",ToContextServer);
+                                }
+                                if (android_accelerometer[3] <= -6.1 && android_accelerometer[3] >= -7.1) {
+                                    System.out.println(android_accelerometer[3]);
+                                    System.out.println("mobile down");
+                                    ToContextServer = "2";
+                                    //sendMessageToDevice("btspp://00066608BB6A:1",ToContextServer);
+                                }
+                                */
+                                command[1]=Integer.parseInt(token0[1]);
+                                if(command[1]==1){
+                                    ToContextServer = "1";
+                                }
+                                if(command[1]==2){
+                                    ToContextServer = "2";
+                                }
                                 
-                            }//FN
-                            if(token0[3].equals("CR")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Scroll Up Curtain in Room 2");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Scroll Down Curtain in Room 2");
-                                    ToContextServer="2";
-                                }//2 : off
                                 
-                            }//CR
+                                System.out.println("end of x coordinates");
+                                
+                            }//if for android
+                            
+                            // to-do..................... right-left if
+                            
+                            double[] coordinate_y = new double[100];
                             
                             
-                            // set variable ToContextServer/ BT
-                        }//R2
-                        //..................... ROOM 3 .......................................
-                        if(token0[2].equals("R3")){
-                            if(token0[3].equals("FL")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Floor lamp in Room 3");
-                                    ToContextServer="1";
-                                }//1 : on
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Floor lamp in Room 3");
-                                    ToContextServer="2";
-                                }//2 : off
+                            if (mK.find()) {
+                                System.out.println("Kinect discovered");
+                                // K: s r x1 y1 z1: e r x2 y2 z2: w r x3 y3 z3:#
                                 
-                            }//FL
-                            if(token0[3].equals("CL")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Ceiling lamp in Room 3");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Ceiling lamp in Room 3");
-                                    ToContextServer="2";
-                                }//2 : off
+                                String[] token1 = line.split("K| |:|#");
                                 
-                            }//CL
-                            if(token0[3].equals("FN")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Turn ON Fan in Room 3");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Turn OFF Fan in Room 3");
-                                    ToContextServer="2";
-                                }//2 : off
                                 
-                            }//FN
-                            if(token0[3].equals("CR")){
-                                if(token0[4].equals("1")){
-                                    System.out.println("Scroll Up Curtain in Room 3");
-                                    ToContextServer="1";
-                                }//1
-                                else if(token0[4].equals("2")){
-                                    System.out.println("Scroll Down Curtain in Room 3");
-                                    ToContextServer="2";
-                                }//2 : off
+                                System.out
+                                        .println("kinect data start......................");
+                                // print whole index
+                                for (int k = 0; k < token1.length; k++) {
+                                    System.out.println(token1[k] + ";"); // don't count ;,
+                                    
+                                }
+                                //
+                                System.out
+                                        .println("end of Kinect data.................................");
+                                System.out.println("***********************");
+                                System.out.println("x");
                                 
-                            }//CR
+                                for (int v = 6; v < token1.length; v += 6) {
+                                    System.out.println(token1[v]);
+                                    
+                                    coordinate_y[v + 1] = Double.parseDouble(token1[v + 1]);
+                                    System.out.println(token1[v + 1]);
+                                    
+                                    
+                                }// for
+                                
+                                if ((coordinate_y[19] > coordinate_y[13])
+                                        && (coordinate_y[13] > coordinate_y[7])) {
+                                    System.out.println("right hand up");
+                                    
+                                    
+                                    ToContextServer = "h";
+                                    
+                                }
+                                
+                                if ((coordinate_y[19] < coordinate_y[13])
+                                        && (coordinate_y[13] < coordinate_y[7])) {
+                                    System.out.println("right hand down");
+                                    
+                                    ToContextServer = "j";
+                                }
+                                
+                            }// if for kinect
                             
-                            // set variable ToContextServer/ BT
-                        }//R3
-                        
-                        
-                        
-                        
-                        System.out.println("end of x coordinates");
-                        
-                    }//if for android
-                    
-                    // to-do..................... right-left if
-                    
-                    double[] coordinate_y = new double[100];
-                    
-                    
-                    if (mK.find()) {
-                        System.out.println("Kinect discovered");
-                        // K: s r x1 y1 z1: e r x2 y2 z2: w r x3 y3 z3:#
-                        
-                        String[] token1 = line.split("K| |:|#");
-                        
-                        
-                        System.out
-                                .println("kinect data start......................");
-                        // print whole index
-                        for (int k = 0; k < token1.length; k++) {
-                            System.out.println(token1[k] + ";"); // don't count ;,
+                            
+                            System.out.println("HHHHHH 1");
+                            
+               char c = ToContextServer.charAt(0);
+               //char c = "2".charAt(0);
+               byte buffer[] = new byte[6];
+	      //buffer[0] = '2';// MT if you want to turn on=1, if you want to turn off 2
+	       buffer[0] = (byte) c;
+	       System.out.println("Client Connection opened at " + con.toString());           
+	       dataOutputStream.flush();
+	       os.write(buffer);
+                            
+                            
+                            System.out.println("HHHHHH 3");
+                            
+                            
+                            
+                            
+                            System.out.println("HHHHHH 4");
+                            String[] token0 = line.split("A|K|:| |#"); // == parseInt ; Data
+                            
+                            
+                            System.out.println("HHHHHH 5");
                             
                         }
-                        //
-                        System.out
-                                .println("end of Kinect data.................................");
-                        System.out.println("***********************");
-                        System.out.println("x");
-                        
-                        for (int v = 6; v < token1.length; v += 6) {
-                            System.out.println(token1[v]);
-                            
-                            coordinate_y[v + 1] = Double.parseDouble(token1[v + 1]);
-                            System.out.println(token1[v + 1]);
-                            
-                            
-                        }// for
-                        
-                        // 1st format
-                        if ((coordinate_y[19] > coordinate_y[13])
-                                && (coordinate_y[13] > coordinate_y[7])) {
-                            System.out.println("right hand up");
-                            
-                            
-                            ToContextServer = "h";
-                            
+                    } catch (Exception e) {
+                        System.err.println("Exception caught: client disconnected.");
+                        System.err.println(e.getMessage());
+                    } finally {
+                        try {
+                            client.close();
+                        } catch (Exception e) {
+                            ;
                         }
-                        
-                        if ((coordinate_y[19] < coordinate_y[13])
-                                && (coordinate_y[13] < coordinate_y[7])) {
-                            System.out.println("right hand down");
-                            
-                            ToContextServer = "j";
-                        }
-                        
-                        //2nd format ....... to be added here
-                        
-                        
-                        
-                    }// if for kinect
-                    
-                    
-                    System.out.println("HHHHHH 1");
-                    sendMessageToDevice("btspp://00066608BB6A:1","1", con, os); //ToContextServer, con, os);
-                    /*char c = ToContextServer.charAt(0);
-                    //char c = "2".charAt(0);
-                    byte buffer[] = new byte[6];
-                    //buffer[0] = '2';// MT if you want to turn on=1, if you want to turn off 2
-                    buffer[0] = (byte) c;
-                    System.out.println("Client Connection opened at " + con.toString());
-                    dataOutputStream.flush();
-                    os.write(buffer);*/
-                    
-                    
-                    System.out.println("HHHHHH 3");
-                    
-                    
-                    
-                    
-                    System.out.println("HHHHHH 4");
-                    String[] token0 = line.split("A|K|:| |#"); // == parseInt ; Data
-                    
-                    
-                    System.out.println("HHHHHH 5");
-                    
-                }
-            } catch (Exception e) {
-                System.err.println("Exception caught: client disconnected.");
-                System.err.println(e.getMessage());
-            } finally {
-                try {
-                    client.close();
-                } catch (Exception e) {
-                    ;
-                }
-            }
+                    }
+                } // run
+ catch (IOException ex) {
+                Logger.getLogger(EchoHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
 	}
 	@Override
 	public void deviceDiscovered(RemoteDevice btDevice, DeviceClass arg1) {
@@ -524,30 +370,28 @@ class EchoHandler extends Thread implements Runnable, DiscoveryListener{
 	   }
 	}
  
-	private static void sendMessageToDevice(String serverURL, String command,StreamConnection con, OutputStream os){
+	private static void sendMessageToDevice(String serverURL, String command){
 	   try{
 	   	char c = command.charAt(0);
 	       System.out.println("Connecting to " + serverURL);
 	      
-	       //StreamConnection 
-                       con = (StreamConnection) Connector.open(serverURL);
-	       System.out.println("**** In RFcommclient run method **** Service URL = " + serverURL + ".");
+	       //StreamConnection con = (StreamConnection) Connector.open(serverURL);
+	       //System.out.println("**** In RFcommclient run method **** Service URL = " + serverURL + ".");
 
 	       // Send some text to server
 	       byte buffer[] = new byte[6];
 	      //buffer[0] = '2';// MT if you want to turn on=1, if you want to turn off 2
 	       buffer[0] = (byte) c;
 	       		
-	       //OutputStream 
-               os = con.openOutputStream();
-	       DataOutputStream dataOutputStream = new DataOutputStream(os);
-	       System.out.println("Client Connection opened at " + con.toString());
+	       //OutputStream os = con.openOutputStream();
+	       //DataOutputStream dataOutputStream = new DataOutputStream(os);
+	       //System.out.println("Client Connection opened at " + con.toString());
 	                   
-	       dataOutputStream.flush();
+	       //dataOutputStream.flush();
 
-	       os.write(buffer);
+	      // os.write(buffer);
 	       System.out.println("********* CLOSING OUTPUT-STREAM*******");
-	       os.close();
+	       //os.close();
 	      
 	   }
 	   catch (Exception e) {
